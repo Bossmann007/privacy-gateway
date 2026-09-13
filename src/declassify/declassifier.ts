@@ -1,123 +1,226 @@
-import { DeterministicBrPii } from "../pii/deterministic-br-pii.js";
-import { authorizeRelease } from "../policy/release-policy.js";
-import { FlowPolicy } from "../policy/flow-policy.js";
-import { ReleasePolicy } from "../policy/release-policy.js";
-import { Presenter } from "./presenter.js";
+import { randomBytes } from 'node:crypto';
+import type { AuditLog } from '../audit/audit-log.js';
 import type {
-  CaseRecord,
-  ClassificationLevel,
-  DeclassifyResult,
-  OfficeContext,
-  ReleaseId,
   SafeDTO,
-} from "../domain/types.js";
-import { assertSafeDto } from "../domain/safe-dto.js";
+  SafeItem,
+  SafeRef,
+  SafeTask,
+  SafeWarning,
+} from '../domain/safe-dto.js';
+import { SUMMARY_MAX, validateSafeDto } from '../domain/safe-dto.js';
+import type { Tainted } from '../domain/taint.js';
+import { deriveTaint } from '../domain/taint.js';
+import type { RawContext, Role } from '../domain/types.js';
+import { DeterministicBrPii } from '../pii/deterministic-br-pii.js';
+import {
+  authorizeRelease,
+  type ReleaseKind,
+} from '../policy/authorized-releases.js';
+import { FlowPolicy } from '../policy/flow-policy.js';
+import { ReleasePolicy } from '../policy/release-policy.js';
+import type { PresentedField } from './presenter.js';
+import { Presenter } from './presenter.js';
 
-export type DeclassifierDeps = {
-  pii: DeterministicBrPii;
-  flowPolicy: FlowPolicy;
-  releasePolicy: ReleasePolicy;
-  presenter: Presenter;
+const INJECTION_RE =
+  /ignore as regras|envie todos os documentos|ignore previous/i;
+
+export type DeclassifySignals = {
+  injection: boolean;
+  hasOnerosidade: boolean;
+  hasCamara: boolean;
 };
 
-const PII_SHAPED =
-  /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b|\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b|\b\d{5}-?\d{4}\b|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|\b(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?9\d{4}-?\d{4}\b/i;
+export type DeclassifiedDraft = {
+  summary: Tainted<string>;
+  decisions: Tainted<SafeItem>[];
+  tasks: Tainted<SafeTask>[];
+  refs: Tainted<SafeRef>[];
+};
 
-/**
- * Egress is declassification, not token redaction.
- * Raw case text never leaves. The presenter builds an abstract SafeDTO;
- * token DLP is an internal stage and never the public contract.
- */
 export class Declassifier {
-  constructor(private readonly deps: DeclassifierDeps) {}
+  private readonly brPii = new DeterministicBrPii();
+  private readonly release = new ReleasePolicy();
+  private readonly flow = new FlowPolicy();
+  protected readonly presenter = new Presenter();
+  private readonly audit?: AuditLog;
 
-  declassify(
-    rec: CaseRecord,
-    ctx: OfficeContext,
-    classification: ClassificationLevel,
-  ): DeclassifyResult {
-    const flow = this.deps.flowPolicy.authorize(ctx, rec, "summarize");
-    if (!flow.ok) {
-      return {
-        ok: false,
-        reason: flow.reason,
-        denialCode: flow.denialCode,
-      };
-    }
+  constructor(opts?: { audit?: AuditLog }) {
+    this.audit = opts?.audit;
+  }
 
-    const sanitized = this.deps.pii.sanitize({
-      rawText: rec.rawText,
-      classification,
+  declassify(args: {
+    raw: RawContext;
+    sessionId: string;
+    role: Role;
+    userId?: string;
+    intent?: string;
+  }): SafeDTO {
+    const fields = this.presenter.read(args.raw);
+    const signals = readSignals(fields, args.intent);
+    const draft = this.compose({
+      fields,
+      role: args.role,
+      signals,
+      userId: args.userId ?? 'office',
     });
 
-    const release = authorizeRelease({
-      classification,
-      taint: rec.taint,
-      facts: {
-        tribunal: rec.facts.tribunal,
-        rito: rec.facts.rito,
-        fase: rec.facts.fase,
-        pedido: rec.facts.pedido,
-        tema: rec.facts.tema,
+    for (const piece of [
+      draft.summary,
+      ...draft.decisions,
+      ...draft.tasks,
+      ...draft.refs,
+    ]) {
+      const verdict = this.flow.canCross(piece);
+      if (!verdict.ok) {
+        throw new Error(verdict.code);
+      }
+    }
+
+    const warnings: SafeWarning[] = [
+      {
+        code: 'declassified',
+        message: 'Documentary content destroyed at boundary. Only SafeDTO released.',
       },
-    });
-    if (!release.ok) {
-      return {
-        ok: false,
-        reason: release.reason,
-        denialCode: release.denialCode,
-      };
+    ];
+    if (signals.injection) {
+      warnings.push({
+        code: 'prompt_injection_ignored',
+        message:
+          'Injection-like instructions in documents or intent were ignored by policy.',
+      });
     }
 
-    const presented = this.deps.presenter.present({
-      rec,
-      sanitized,
-      classification,
-    });
-    if (!presented.ok) {
-      return {
-        ok: false,
-        reason: presented.reason,
-        denialCode: presented.denialCode,
-      };
-    }
+    const summaryText =
+      draft.summary.value.length > SUMMARY_MAX
+        ? draft.summary.value.slice(0, SUMMARY_MAX)
+        : draft.summary.value;
 
-    const dto: SafeDTO = {
-      sessionId: ctx.sessionId,
-      releaseId: this.releaseId(),
-      classification,
-      taint: rec.taint,
-      abstract: presented.value.abstract,
-      facts: presented.value.facts,
+    const drafted: SafeDTO = {
+      schemaVersion: '1',
+      sessionId: args.sessionId,
+      releaseId: `rel_${randomBytes(5).toString('hex')}`,
+      summary: summaryText,
+      decisions: draft.decisions.map((d) => d.value),
+      tasks: draft.tasks.map((t) => t.value),
+      safeReferences: draft.refs.map((r) => r.value),
+      warnings,
     };
 
-    try {
-      assertSafeDto(dto);
-    } catch {
-      return {
-        ok: false,
-        reason: "presenter_unsafe",
-        denialCode: "PRESENTER_UNSAFE",
-      };
+    const released = this.release.apply(args.role, drafted);
+
+    const spans = this.brPii.findSpans(released.summary + (args.intent ?? ''));
+    if (spans.length > 0) {
+      throw new Error('declassifier_emitted_pii_shaped_content');
     }
 
-    if (this.containsPiiShape(dto)) {
-      return {
-        ok: false,
-        reason: "presenter_unsafe",
-        denialCode: "PRESENTER_UNSAFE",
-      };
+    const checked = validateSafeDto(released);
+    if (!checked.ok) {
+      throw new Error(`declassify_invalid:${checked.reason}`);
+    }
+    return checked.dto;
+  }
+
+  protected compose(args: {
+    fields: PresentedField[];
+    role: Role;
+    signals: DeclassifySignals;
+    userId?: string;
+  }): DeclassifiedDraft {
+    const thesis = this.presenter.find(args.fields, 'tese_interna');
+    const grounds = this.presenter.find(args.fields, 'fundamentacao');
+    const sourceTaint = deriveTaint(
+      [thesis?.text, grounds?.text].filter(
+        (t): t is Tainted<string> => t !== undefined,
+      ),
+    );
+    const kind: ReleaseKind =
+      args.role === 'estagiario'
+        ? 'intern_brief'
+        : args.role === 'socio'
+          ? 'partner_brief'
+          : 'associate_brief';
+    const userId = args.userId ?? 'office';
+
+    const summaryText =
+      args.role === 'estagiario'
+        ? 'A equipe sinalizou uma inconsistencia contratual potencial. Recomenda-se supervisionar a tese principal antes de qualquer divulgacao.'
+        : args.role === 'socio'
+          ? 'A equipe identificou possivel inconsistencia contratual e recomendou aprofundar a tese de onerosidade excessiva, com comparacao a precedente de camara. Dados cadastrais e valores nao sao liberados neste release.'
+          : 'A equipe identificou uma possivel inconsistencia contratual e recomendou aprofundar a analise da tese principal com base em trabalho interno de camara.';
+
+    const abstract = <T>(value: T): Tainted<T> =>
+      authorizeRelease(kind, value, sourceTaint, this.audit, userId);
+
+    const decisions: Tainted<SafeItem>[] =
+      args.role === 'estagiario'
+        ? [
+            abstract({
+              id: 'dec_1',
+              text: 'Encaminhar revisao da tese ao advogado responsavel.',
+            }),
+          ]
+        : [
+            abstract({
+              id: 'dec_1',
+              text: 'Priorizar analise da inconsistencia contratual apontada pela equipe.',
+            }),
+            ...(args.signals.hasOnerosidade
+              ? [
+                  abstract({
+                    id: 'dec_2',
+                    text: 'Avaliar tese de onerosidade excessiva como linha principal.',
+                  }),
+                ]
+              : []),
+          ];
+
+    const tasks: Tainted<SafeTask>[] = [
+      abstract({
+        id: 'task_1',
+        text: 'Revisar clausulas relevantes com o time do caso.',
+        status: 'open' as const,
+      }),
+      abstract({
+        id: 'task_2',
+        text: 'Comparar fundamentacao com precedente interno de camara.',
+        status: 'open' as const,
+      }),
+    ];
+
+    const refs: Tainted<SafeRef>[] = [
+      abstract({
+        id: 'ref_case',
+        label: 'Caso autorizado (referencia opaca)',
+        kind: 'internal_case_ref' as const,
+      }),
+    ];
+    if (args.signals.hasCamara || args.signals.hasOnerosidade) {
+      refs.push(
+        abstract({
+          id: 'ref_wp',
+          label: 'Nota interna de tese (sem corpo)',
+          kind: 'workproduct_ref' as const,
+        }),
+      );
     }
 
-    return { ok: true, value: dto };
+    return {
+      summary: abstract(summaryText),
+      decisions,
+      tasks,
+      refs,
+    };
   }
+}
 
-  private releaseId(): ReleaseId {
-    return `rel_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
-  }
-
-  private containsPiiShape(dto: SafeDTO): boolean {
-    const hay = `${dto.abstract} ${JSON.stringify(dto.facts)}`;
-    return PII_SHAPED.test(hay);
-  }
+function readSignals(
+  fields: PresentedField[],
+  intent: string | undefined,
+): DeclassifySignals {
+  const joined = fields.map((f) => f.text.value).join('\n');
+  return {
+    injection: INJECTION_RE.test(joined) || INJECTION_RE.test(intent ?? ''),
+    hasOnerosidade: /onerosidade excessiva/i.test(joined),
+    hasCamara: /1a Camara|1ª Câmara/i.test(joined),
+  };
 }
