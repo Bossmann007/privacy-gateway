@@ -4,7 +4,6 @@ function onlyDigits(value: string): string {
   return value.replace(/\D/g, '');
 }
 
-/** CPF check digits (mod-11). */
 export function isValidCpf(digits: string): boolean {
   if (digits.length !== 11) {
     return false;
@@ -34,7 +33,6 @@ export function isValidCpf(digits: string): boolean {
   return d2 === Number(digits[10]);
 }
 
-/** CNPJ check digits (mod-11). */
 export function isValidCnpj(digits: string): boolean {
   if (digits.length !== 14) {
     return false;

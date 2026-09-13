@@ -22,7 +22,6 @@ export type McpToolResult =
   | {
       isError: false;
       structuredContent: SafeDTO;
-      /** Wire bytes that would enter the external agent context. */
       content: [{ type: 'text'; text: string }];
     }
   | {
