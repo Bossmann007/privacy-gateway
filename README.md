@@ -8,6 +8,8 @@ Token sanitization (deterministic Brazilian PII) is an internal DLP stage. Egres
 
 Extracted from the `privacy-gateway/` slice of [Bossmann007/openlegalai](https://github.com/Bossmann007/openlegalai) so this gate can evolve on its own.
 
+**Repo:** https://github.com/Bossmann007/privacy-gateway (private)
+
 ## Contract
 
 ```ts
@@ -41,7 +43,7 @@ MCP identity is the connection principal (`OFFICE_USER_ID` / `OFFICE_ROLE` on st
 ## Evidence
 
 ```bash
-npm ci
+npm install
 npm run evidence
 ```
 
