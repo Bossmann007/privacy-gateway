@@ -49,6 +49,21 @@ npm run evidence
 
 That runs typecheck, adversarial tests, the intern vs partner demo, and the MCP stdio smoke (`get_safe_summary` in one process).
 
+## Cursor plugin (local)
+
+This repo is a single-plugin product. Install into Cursor:
+
+```bash
+chmod +x scripts/install-plugin.sh
+./scripts/install-plugin.sh
+```
+
+That symlinks the checkout to `~/.cursor/plugins/local/privacy-gateway` (MCP + rules + skill). Reload the Cursor window. Set plugin variables `OFFICE_USER_ID` / `OFFICE_ROLE` (defaults: `adv-ana` / `advogado`).
+
+Manifest: [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json). MCP: [`mcp.json`](mcp.json) → `scripts/run-mcp.sh`.
+
+These are **technical controls**, not an LGPD certification.
+
 ## MCP stdio
 
 ```bash

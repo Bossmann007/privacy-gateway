@@ -3,3 +3,7 @@ dist/
 coverage/
 *.log
 .DS_Store
+
+# Cursor ephemeral agent state (keep templates / environment.json)
+.cursor/state/
+.cursor/hooks/state/

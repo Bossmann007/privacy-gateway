@@ -1,0 +1,24 @@
+---
+description: Deny-by-default egress for Privacy Gateway MCP — never paste raw case data; only SafeDTO tools.
+alwaysApply: true
+---
+
+# Privacy Gateway egress
+
+External AI is untrusted. Treat this plugin's MCP as the only office boundary.
+
+## Must
+
+- Use only allowlisted tools: `enter_office`, `leave_office`, `get_safe_summary`, `ask_office`.
+- Put identity in connection env (`OFFICE_USER_ID` / `OFFICE_ROLE`), never in tool arguments (`user`, `userId`, `role`, `principal` forbidden).
+- Treat tool outputs as `SafeDTO` only. Do not ask for raw documents, SQL, filesystem paths, or vector dumps.
+
+## Must not
+
+- Paste client names, CPF/CNPJ, OAB, process numbers, emails, phones, or case narrative into chat when a tool can answer.
+- Suggest bypassing the gateway, weakening the firewall, or sending raw context "just this once".
+- Claim LGPD compliance. Describe technical controls only.
+
+## Fail closed
+
+If a tool errors or returns a public denial, stop. Do not invent case facts from memory to fill gaps.

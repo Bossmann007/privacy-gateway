@@ -10,15 +10,18 @@
     "demo": "tsx src/demo.ts",
     "mcp": "tsx src/mcp/stdio-server.ts",
     "mcp:smoke": "tsx src/mcp/mcp-smoke.ts",
-    "evidence": "npm run typecheck && npm test && npm run demo && npm run mcp:smoke"
+    "evidence": "npm run typecheck && npm test && npm run demo && npm run mcp:smoke",
+    "lint:measure": "node scripts/verify-quality-gates.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "eslint": "^10.10.0",
     "tsx": "^4.19.0",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^2.1.0"
   }
 }

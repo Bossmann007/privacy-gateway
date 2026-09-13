@@ -20,3 +20,18 @@
 - MCP identity is the connection principal (`OFFICE_USER_ID` / `OFFICE_ROLE`). Tool arguments must not carry `user` or `role`.
 - `npm run evidence` runs typecheck, tests, demo, and MCP stdio smoke.
 - Current architecture: `docs/architecture/privacy-gateway-v3.md`.
+- Cursor plugin install: `./scripts/install-plugin.sh` → `~/.cursor/plugins/local/privacy-gateway` (MCP + rules + skill).
+
+## Learned User Preferences
+
+## Learned Workspace Facts
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues via `gh` for this repo (`Bossmann007/privacy-gateway`). See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `docs/adr/` (created lazily by domain-modeling). See `docs/agents/domain.md`.

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "privacy-gateway": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["./scripts/run-mcp.sh"],
+      "env": {
+        "OFFICE_USER_ID": "${OFFICE_USER_ID}",
+        "OFFICE_ROLE": "${OFFICE_ROLE}"
+      }
+    }
+  }
+}
