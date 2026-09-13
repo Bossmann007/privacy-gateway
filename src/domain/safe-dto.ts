@@ -31,6 +31,17 @@ export type SafeDTO = {
   warnings: SafeWarning[];
 };
 
+/** Text that can cross into findSpans. Ids, codes, and kinds stay out. */
+export function safeDtoTextCorpus(dto: SafeDTO): string {
+  return [
+    dto.summary,
+    ...dto.decisions.map((item) => item.text),
+    ...dto.tasks.map((item) => item.text),
+    ...dto.safeReferences.map((item) => item.label),
+    ...dto.warnings.map((item) => item.message),
+  ].join('\n');
+}
+
 export const FIELD_MAX = 600;
 export const SUMMARY_MAX = FIELD_MAX;
 export const LIST_MAX = 5;

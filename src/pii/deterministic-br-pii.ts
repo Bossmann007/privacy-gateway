@@ -67,6 +67,14 @@ const CPF_RE =
 const CNPJ_RE =
   /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g;
 const ACCOUNT_RE = /\b\d{4,6}-\d\b/g;
+const OAB_RE =
+  /\bOAB\s*[/-]?\s*[A-Z]{2}\s*n?\.?\s*\d{1,3}\.?\d{3}\b/gi;
+const CNJ_RE =
+  /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g;
+const EMAIL_RE =
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+const PHONE_BR_RE =
+  /(?:\+55\s*)?(?:\(?\d{2}\)?\s*)(?:9\s*)?\d{4}[-\s]?\d{4}\b/g;
 const PERSON_HINT_RE =
   /\b(?:Parte autora|cliente|autor|reu):\s*([A-Za-zÀ-ÿ]+(?:\s+[A-Za-zÀ-ÿ]+){1,4})/gi;
 const PERSON_NAME_RE =
@@ -78,7 +86,11 @@ export class DeterministicBrPii {
 
     for (const match of text.matchAll(CPF_RE)) {
       const digits = onlyDigits(match[0]);
-      if (digits.length === 11 && match.index !== undefined) {
+      if (
+        match.index !== undefined &&
+        digits.length === 11 &&
+        isValidCpf(digits)
+      ) {
         spans.push({
           start: match.index,
           end: match.index + match[0].length,
@@ -89,7 +101,11 @@ export class DeterministicBrPii {
 
     for (const match of text.matchAll(CNPJ_RE)) {
       const digits = onlyDigits(match[0]);
-      if (digits.length === 14 && match.index !== undefined) {
+      if (
+        match.index !== undefined &&
+        digits.length === 14 &&
+        isValidCnpj(digits)
+      ) {
         spans.push({
           start: match.index,
           end: match.index + match[0].length,
@@ -106,6 +122,50 @@ export class DeterministicBrPii {
         start: match.index,
         end: match.index + match[0].length,
         type: 'BR_ACCOUNT',
+      });
+    }
+
+    for (const match of text.matchAll(OAB_RE)) {
+      if (match.index === undefined) {
+        continue;
+      }
+      spans.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        type: 'BR_OAB',
+      });
+    }
+
+    for (const match of text.matchAll(CNJ_RE)) {
+      if (match.index === undefined) {
+        continue;
+      }
+      spans.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        type: 'BR_CNJ',
+      });
+    }
+
+    for (const match of text.matchAll(EMAIL_RE)) {
+      if (match.index === undefined) {
+        continue;
+      }
+      spans.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        type: 'EMAIL',
+      });
+    }
+
+    for (const match of text.matchAll(PHONE_BR_RE)) {
+      if (match.index === undefined) {
+        continue;
+      }
+      spans.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        type: 'BR_PHONE',
       });
     }
 

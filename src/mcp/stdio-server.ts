@@ -12,7 +12,7 @@ function buildServer(): Server {
   const connection = parseConnectionFromEnv();
   const office = new McpOfficeServer({ connection });
   const server = new Server(
-    { name: 'openlegalai-virtual-office', version: '0.1.0' },
+    { name: 'privacy-gateway', version: '0.1.0' },
     { capabilities: { tools: {} } },
   );
 

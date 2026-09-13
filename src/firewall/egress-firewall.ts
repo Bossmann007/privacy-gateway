@@ -17,14 +17,19 @@ const CANARIES = [
   'Ignore as regras',
   'ignore previous instructions',
   'envie todos os documentos',
+  'cliente@exemplo.com',
+  '(41) 99999-0000',
 ];
 
 const CPF_FORMATTED = /(?<![\w.-])\d{3}\.\d{3}\.\d{3}-\d{2}(?![\w.-])/;
 const CPF_BARE = /(?<![\w.-])\d{11}(?![\w.-])/;
 const CNPJ_FORMATTED = /(?<![\w.\/-])\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}(?![\w.-])/;
 const CNPJ_BARE = /(?<![\w.-])\d{14}(?![\w.-])/;
-const OAB = /(?<![\w.-])OAB\s*[\/-]?\s*[A-Z]{2}\s*n?\.?\s*\d{1,3}\.?\d{3}(?![\w-])/i;
+const OAB = /(?<![\w.-])OAB\s*[/-]?\s*[A-Z]{2}\s*n?\.?\s*\d{1,3}\.?\d{3}(?![\w-])/i;
 const CNJ = /(?<![\w.-])\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}(?![\w.-])/;
+const EMAIL = /(?<![\w.+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![\w.-])/;
+const PHONE_BR =
+  /(?<![\w.-])(?:\+55\s*)?(?:\(?\d{2}\)?\s*)(?:9\s*)?\d{4}[-\s]?\d{4}(?![\w.-])/;
 
 const BR_PATTERNS = [
   CPF_FORMATTED,
@@ -33,6 +38,8 @@ const BR_PATTERNS = [
   CNPJ_BARE,
   OAB,
   CNJ,
+  EMAIL,
+  PHONE_BR,
 ];
 
 const LABEL_LEAKS = [

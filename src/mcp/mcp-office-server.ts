@@ -140,6 +140,12 @@ export class McpOfficeServer {
     const verdict = this.firewall.inspect(wire);
     if (!verdict.ok) {
       this.onFirewallBlock?.(verdict.code);
+      this.audit.append({
+        action: 'firewall_denied',
+        userId: this.connection.principal.id,
+        outcome: 'deny',
+        reason: verdict.code,
+      });
       return publicError();
     }
     return {
