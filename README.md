@@ -1,3 +1,12 @@
+<!-- ENZO-PORTFOLIO-BRAND -->
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:111111,100:1E3A8A&height=165&section=header&text=Privacy%20Gateway&fontSize=42&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Fail-closed%20SafeDTO%20egress%20for%20legal%20AI%20systems.&descAlignY=57&descSize=14" alt="Privacy Gateway" />
+</p>
+
+<p align="center"><strong>TypeScript · MCP · Security</strong></p>
+
+---
+
 # Privacy Gateway
 
 Mandatory privacy gateway for a private institutional legal office.
@@ -65,3 +74,8 @@ Forbidden: `execute_sql`, `get_raw_document`, and any `user` / `role` key in too
 ## Demo data
 
 Fixtures are fictional. Do not add real client files.
+
+<!-- ENZO-PORTFOLIO-BRAND-FOOTER -->
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:111111,100:1E3A8A&height=85&section=footer" alt="Footer" />
+</p>
