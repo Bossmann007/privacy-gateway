@@ -1,0 +1,47 @@
+{
+  "name": "privacy-gateway",
+  "displayName": "Privacy Gateway",
+  "version": "0.1.0",
+  "description": "Fail-closed MCP virtual office: external AI receives only validated SafeDTO. Technical privacy controls for legal-office egress — not a legal-compliance claim.",
+  "author": {
+    "name": "Bossmann007"
+  },
+  "homepage": "https://github.com/Bossmann007/privacy-gateway",
+  "repository": "https://github.com/Bossmann007/privacy-gateway",
+  "license": "UNLICENSED",
+  "keywords": [
+    "privacy",
+    "mcp",
+    "safedto",
+    "legal",
+    "egress",
+    "dlp"
+  ],
+  "category": "developer-tools",
+  "tags": [
+    "privacy",
+    "mcp",
+    "security"
+  ],
+  "skills": "./skills/",
+  "rules": "./rules/",
+  "mcpServers": "./mcp.json",
+  "variables": {
+    "type": "object",
+    "properties": {
+      "OFFICE_USER_ID": {
+        "type": "string",
+        "title": "Office user id",
+        "description": "Connection principal id (e.g. adv-ana). Must not appear in tool arguments.",
+        "default": "adv-ana"
+      },
+      "OFFICE_ROLE": {
+        "type": "string",
+        "title": "Office role",
+        "description": "Connection role: advogado | socio | estagiario",
+        "default": "advogado"
+      }
+    },
+    "required": ["OFFICE_USER_ID", "OFFICE_ROLE"]
+  }
+}

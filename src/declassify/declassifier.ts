@@ -7,7 +7,11 @@ import type {
   SafeTask,
   SafeWarning,
 } from '../domain/safe-dto.js';
-import { SUMMARY_MAX, validateSafeDto } from '../domain/safe-dto.js';
+import {
+  SUMMARY_MAX,
+  safeDtoTextCorpus,
+  validateSafeDto,
+} from '../domain/safe-dto.js';
 import type { Tainted } from '../domain/taint.js';
 import { deriveTaint } from '../domain/taint.js';
 import type { RawContext, Role } from '../domain/types.js';
@@ -108,8 +112,14 @@ export class Declassifier {
 
     const released = this.release.apply(args.role, drafted);
 
-    const spans = this.brPii.findSpans(released.summary + (args.intent ?? ''));
+    const spans = this.brPii.findSpans(safeDtoTextCorpus(released));
     if (spans.length > 0) {
+      this.audit?.append({
+        action: 'declassifier_denied',
+        userId: args.userId ?? 'office',
+        outcome: 'deny',
+        reason: 'declassifier_emitted_pii_shaped_content',
+      });
       throw new Error('declassifier_emitted_pii_shaped_content');
     }
 
